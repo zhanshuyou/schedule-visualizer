@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { m } from '../paraglide/messages';
+	import { getLocale, setLocale } from '../paraglide/runtime';
 
 	let mode = 'cron'; // 'cron' or 'rrule'
 	let copied = false;
@@ -62,47 +64,47 @@
 			cronMonth === '*' &&
 			cronWeekday === '*'
 		) {
-			return '每分钟执行';
+			return m.cron_execute_minute();
 		}
 
 		if (cronMinute !== '*') {
 			if (cronMinute.includes('/')) {
 				const interval = cronMinute.split('/')[1];
-				parts.push(`每${interval}分钟`);
+				parts.push(m.cron_minute_interval({ interval }));
 			} else if (cronMinute.includes(',')) {
-				parts.push(`在第 ${cronMinute} 分钟`);
+				parts.push(m.cron_minute_specific({ minute: cronMinute }));
 			} else {
-				parts.push(`在第 ${cronMinute} 分钟`);
+				parts.push(m.cron_minute_specific({ minute: cronMinute }));
 			}
 		}
 
 		if (cronHour !== '*') {
 			if (cronHour.includes('/')) {
 				const interval = cronHour.split('/')[1];
-				parts.push(`每${interval}小时`);
+				parts.push(m.cron_hour_interval({ interval }));
 			} else {
-				parts.push(`${cronHour}点`);
+				parts.push(m.cron_hour_specific({ hour: cronHour }));
 			}
 		}
 
 		if (cronDay !== '*') {
-			parts.push(`每月第 ${cronDay} 天`);
+			parts.push(m.cron_day_specific({ day: cronDay }));
 		}
 
 		if (cronMonth !== '*') {
 			const months = [
-				'1月',
-				'2月',
-				'3月',
-				'4月',
-				'5月',
-				'6月',
-				'7月',
-				'8月',
-				'9月',
-				'10月',
-				'11月',
-				'12月'
+				m.month_1(),
+				m.month_2(),
+				m.month_3(),
+				m.month_4(),
+				m.month_5(),
+				m.month_6(),
+				m.month_7(),
+				m.month_8(),
+				m.month_9(),
+				m.month_10(),
+				m.month_11(),
+				m.month_12()
 			];
 			if (cronMonth.includes(',')) {
 				const monthNums = cronMonth.split(',');
@@ -113,7 +115,15 @@
 		}
 
 		if (cronWeekday !== '*') {
-			const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+			const days = [
+				m.weekday_0(),
+				m.weekday_1(),
+				m.weekday_2(),
+				m.weekday_3(),
+				m.weekday_4(),
+				m.weekday_5(),
+				m.weekday_6()
+			];
 			if (cronWeekday.includes(',')) {
 				const dayNums = cronWeekday.split(',');
 				parts.push(dayNums.map((d) => days[parseInt(d)]).join('、'));
@@ -122,33 +132,33 @@
 			}
 		}
 
-		if (parts.length === 0) return '每分钟执行';
+		if (parts.length === 0) return m.cron_execute_minute();
 		return parts.join(' ');
 	})();
 
 	$: rruleDescription = (() => {
 		const freqMap: Record<string, string> = {
-			YEARLY: '每年',
-			MONTHLY: '每月',
-			WEEKLY: '每周',
-			DAILY: '每天',
-			HOURLY: '每小时'
+			YEARLY: m.yearly(),
+			MONTHLY: m.monthly(),
+			WEEKLY: m.weekly(),
+			DAILY: m.daily(),
+			HOURLY: m.hourly()
 		};
 
 		const dayMap: Record<string, string> = {
-			MO: '周一',
-			TU: '周二',
-			WE: '周三',
-			TH: '周四',
-			FR: '周五',
-			SA: '周六',
-			SU: '周日'
+			MO: m.weekday_1(),
+			TU: m.weekday_2(),
+			WE: m.weekday_3(),
+			TH: m.weekday_4(),
+			FR: m.weekday_5(),
+			SA: m.weekday_6(),
+			SU: m.weekday_0()
 		};
 
 		let desc = freqMap[rruleFreq] || rruleFreq;
 
 		if (rruleInterval && rruleInterval !== '1') {
-			desc = `每 ${rruleInterval} ${freqMap[rruleFreq].slice(1)}`;
+			desc = `${m.every()} ${rruleInterval} ${freqMap[rruleFreq].slice(1)}`;
 		}
 
 		if (rruleByDay.length > 0) {
@@ -156,15 +166,15 @@
 		}
 
 		if (rruleByMonthDay) {
-			desc += ` 第 ${rruleByMonthDay} 天`;
+			desc += ` ${m.on_specific_day({ day: rruleByMonthDay })}`;
 		}
 
 		if (rruleCount) {
-			desc += ` 共 ${rruleCount} 次`;
+			desc += ` ${m.total_times({ times: rruleCount })}`;
 		}
 
 		if (rruleUntil) {
-			desc += ` 直到 ${rruleUntil}`;
+			desc += ` ${m.until()} ${rruleUntil}`;
 		}
 
 		return desc;
@@ -177,13 +187,13 @@
 	};
 
 	const weekdays = [
-		{ value: 'MO', label: '周一' },
-		{ value: 'TU', label: '周二' },
-		{ value: 'WE', label: '周三' },
-		{ value: 'TH', label: '周四' },
-		{ value: 'FR', label: '周五' },
-		{ value: 'SA', label: '周六' },
-		{ value: 'SU', label: '周日' }
+		{ value: 'MO', label: m.weekday_1() },
+		{ value: 'TU', label: m.weekday_2() },
+		{ value: 'WE', label: m.weekday_3() },
+		{ value: 'TH', label: m.weekday_4() },
+		{ value: 'FR', label: m.weekday_5() },
+		{ value: 'SA', label: m.weekday_6() },
+		{ value: 'SU', label: m.weekday_0() }
 	];
 
 	const toggleWeekday = (day: string) => {
@@ -226,6 +236,10 @@
 				break;
 		}
 	};
+
+	const handleLocaleChange = (e: Event) => {
+		setLocale((e.target as HTMLSelectElement).value as 'en' | 'zh');
+	};
 </script>
 
 <svelte:head>
@@ -234,9 +248,13 @@
 	</style>
 </svelte:head>
 
-<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+<div class="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 p-8">
 	<div class="mx-auto max-w-4xl">
 		<div class="rounded-2xl bg-white p-8 shadow-xl">
+			<select name="locale" value={getLocale()} onchange={handleLocaleChange} class="mb-4 text-sm">
+				<option value="zh">中文</option>
+				<option value="en">EN</option>
+			</select>
 			<!-- Header -->
 			<div class="mb-8 text-center">
 				<h1 class="mb-2 flex items-center justify-center gap-3 text-4xl font-bold text-gray-800">
@@ -253,15 +271,15 @@
 							d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
 						/>
 					</svg>
-					定时任务可视化编辑器
+					{m.title()}
 				</h1>
-				<p class="text-gray-600">轻松创建和管理 Cron 和 RRule 表达式</p>
+				<p class="text-gray-600">{m.description()}</p>
 			</div>
 
 			<!-- Mode Selector -->
 			<div class="mb-8 flex gap-4">
 				<button
-					on:click={() => (mode = 'cron')}
+					onclick={() => (mode = 'cron')}
 					class="flex-1 rounded-lg px-6 py-3 font-semibold transition-all {mode === 'cron'
 						? 'bg-indigo-600 text-white shadow-lg'
 						: 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
@@ -274,10 +292,10 @@
 							d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
 						/>
 					</svg>
-					Cron 表达式
+					{m.cron_expression()}
 				</button>
 				<button
-					on:click={() => (mode = 'rrule')}
+					onclick={() => (mode = 'rrule')}
 					class="flex-1 rounded-lg px-6 py-3 font-semibold transition-all {mode === 'rrule'
 						? 'bg-indigo-600 text-white shadow-lg'
 						: 'bg-gray-100 text-gray-600 hover:bg-gray-200'}"
@@ -290,7 +308,7 @@
 							d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
 						/>
 					</svg>
-					RRule 规则
+					{m.rrule_expression()}
 				</button>
 			</div>
 
@@ -300,7 +318,7 @@
 					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 						<div>
 							<label class="mb-2 block text-sm font-semibold text-gray-700" for="cronMinute">
-								分钟 (0-59)
+								{m.cron_minute()}
 							</label>
 							<input
 								type="text"
@@ -310,13 +328,13 @@
 								class="w-full rounded-lg border-2 border-gray-200 px-4 py-2 focus:border-indigo-500 focus:outline-none"
 							/>
 							<p class="mt-1 text-xs text-gray-500">
-								* = 每分钟, */5 = 每5分钟, 0,30 = 第0和30分钟
+								{m.cron_minute_desc()}
 							</p>
 						</div>
 
 						<div>
 							<label class="mb-2 block text-sm font-semibold text-gray-700" for="cronHour">
-								小时 (0-23)
+								{m.cron_hour()}
 							</label>
 							<input
 								type="text"
@@ -325,12 +343,12 @@
 								placeholder="* 或 9 或 9-17"
 								class="w-full rounded-lg border-2 border-gray-200 px-4 py-2 focus:border-indigo-500 focus:outline-none"
 							/>
-							<p class="mt-1 text-xs text-gray-500">* = 每小时, 9 = 9点, 9-17 = 9点到17点</p>
+							<p class="mt-1 text-xs text-gray-500">{m.cron_hour_desc()}</p>
 						</div>
 
 						<div>
 							<label class="mb-2 block text-sm font-semibold text-gray-700" for="cronDay">
-								日期 (1-31)
+								{m.cron_day()}
 							</label>
 							<input
 								type="text"
@@ -339,12 +357,12 @@
 								placeholder="* 或 1 或 1,15"
 								class="w-full rounded-lg border-2 border-gray-200 px-4 py-2 focus:border-indigo-500 focus:outline-none"
 							/>
-							<p class="mt-1 text-xs text-gray-500">* = 每天, 1 = 每月1号, 1,15 = 1号和15号</p>
+							<p class="mt-1 text-xs text-gray-500">{m.cron_day_desc()}</p>
 						</div>
 
 						<div>
 							<label class="mb-2 block text-sm font-semibold text-gray-700" for="cronMonth">
-								月份 (1-12)
+								{m.cron_month()}
 							</label>
 							<input
 								type="text"
@@ -353,12 +371,12 @@
 								placeholder="* 或 1 或 1,6,12"
 								class="w-full rounded-lg border-2 border-gray-200 px-4 py-2 focus:border-indigo-500 focus:outline-none"
 							/>
-							<p class="mt-1 text-xs text-gray-500">* = 每月, 1 = 1月, 1,6,12 = 1、6、12月</p>
+							<p class="mt-1 text-xs text-gray-500">{m.cron_month_desc()}</p>
 						</div>
 
 						<div class="md:col-span-2">
 							<label class="mb-2 block text-sm font-semibold text-gray-700" for="cronWeekday">
-								星期 (0-6, 0=周日)
+								{m.cron_weekday()}
 							</label>
 							<input
 								type="text"
@@ -368,7 +386,7 @@
 								class="w-full rounded-lg border-2 border-gray-200 px-4 py-2 focus:border-indigo-500 focus:outline-none"
 							/>
 							<p class="mt-1 text-xs text-gray-500">
-								* = 每天, 1 = 周一, 1-5 = 周一到周五, 0,6 = 周末
+								{m.cron_weekday_desc()}
 							</p>
 						</div>
 					</div>
@@ -376,33 +394,33 @@
 					<!-- Quick presets -->
 					<div>
 						<label class="mb-2 block text-sm font-semibold text-gray-700" for="quickPresets">
-							快速选择
+							{m.cron_quick_select()}
 						</label>
 						<div class="flex flex-wrap gap-2">
 							<button
-								on:click={() => setCronPreset('midnight')}
+								onclick={() => setCronPreset('midnight')}
 								id="quickPresets"
 								class="rounded-md bg-blue-100 px-3 py-1 text-sm text-blue-700 transition-colors hover:bg-blue-200"
 							>
-								每天午夜
+								{m.cron_quick_midnight()}
 							</button>
 							<button
-								on:click={() => setCronPreset('weekday9')}
+								onclick={() => setCronPreset('weekday9')}
 								class="rounded-md bg-blue-100 px-3 py-1 text-sm text-blue-700 transition-colors hover:bg-blue-200"
 							>
-								工作日早9点
+								{m.cron_quick_weekday9()}
 							</button>
 							<button
-								on:click={() => setCronPreset('every5min')}
+								onclick={() => setCronPreset('every5min')}
 								class="rounded-md bg-blue-100 px-3 py-1 text-sm text-blue-700 transition-colors hover:bg-blue-200"
 							>
-								每5分钟
+								{m.cron_quick_every5min()}
 							</button>
 							<button
-								on:click={() => setCronPreset('every4hour')}
+								onclick={() => setCronPreset('every4hour')}
 								class="rounded-md bg-blue-100 px-3 py-1 text-sm text-blue-700 transition-colors hover:bg-blue-200"
 							>
-								每4小时
+								{m.cron_quick_every4hour()}
 							</button>
 						</div>
 					</div>
@@ -415,24 +433,24 @@
 					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 						<div>
 							<label class="mb-2 block text-sm font-semibold text-gray-700" for="rruleFreq">
-								频率 (FREQ)
+								{m.rr_frequency()}
 							</label>
 							<select
 								id="rruleFreq"
 								bind:value={rruleFreq}
 								class="w-full rounded-lg border-2 border-gray-200 px-4 py-2 focus:border-indigo-500 focus:outline-none"
 							>
-								<option value="YEARLY">每年</option>
-								<option value="MONTHLY">每月</option>
-								<option value="WEEKLY">每周</option>
-								<option value="DAILY">每天</option>
-								<option value="HOURLY">每小时</option>
+								<option value="YEARLY">{m.rr_frequency_yearly()}</option>
+								<option value="MONTHLY">{m.rr_frequency_monthly()}</option>
+								<option value="WEEKLY">{m.rr_frequency_weekly()}</option>
+								<option value="DAILY">{m.rr_frequency_daily()}</option>
+								<option value="HOURLY">{m.rr_frequency_hourly()}</option>
 							</select>
 						</div>
 
 						<div>
 							<label class="mb-2 block text-sm font-semibold text-gray-700" for="rruleInterval">
-								间隔 (INTERVAL)
+								{m.rr_interval()}
 							</label>
 							<input
 								id="rruleInterval"
@@ -442,26 +460,26 @@
 								placeholder="1"
 								class="w-full rounded-lg border-2 border-gray-200 px-4 py-2 focus:border-indigo-500 focus:outline-none"
 							/>
-							<p class="mt-1 text-xs text-gray-500">例如: 2 = 每隔一次</p>
+							<p class="mt-1 text-xs text-gray-500">{m.rr_interval_desc()}</p>
 						</div>
 
 						<div>
 							<label class="mb-2 block text-sm font-semibold text-gray-700" for="rruleCount">
-								重复次数 (COUNT)
+								{m.rr_count()}
 							</label>
 							<input
 								id="rruleCount"
 								type="number"
 								min="1"
 								bind:value={rruleCount}
-								placeholder="留空表示无限重复"
+								placeholder={m.rr_count_placeholder()}
 								class="w-full rounded-lg border-2 border-gray-200 px-4 py-2 focus:border-indigo-500 focus:outline-none"
 							/>
 						</div>
 
 						<div>
 							<label class="mb-2 block text-sm font-semibold text-gray-700" for="rruleUntil">
-								结束日期 (UNTIL)
+								{m.rr_until()}
 							</label>
 							<input
 								id="rruleUntil"
@@ -473,13 +491,13 @@
 
 						<div class="md:col-span-2">
 							<label class="mb-2 block text-sm font-semibold text-gray-700" for="rruleByDay">
-								指定星期几 (BYDAY)
+								{m.rr_byday()}
 							</label>
 							<div class="flex flex-wrap gap-2">
 								{#each weekdays as day}
 									<button
 										id={`rruleByDay-${day.value}`}
-										on:click={() => toggleWeekday(day.value)}
+										onclick={() => toggleWeekday(day.value)}
 										class="rounded-lg px-4 py-2 font-medium transition-all {rruleByDay.includes(
 											day.value
 										)
@@ -494,13 +512,13 @@
 
 						<div class="md:col-span-2">
 							<label class="mb-2 block text-sm font-semibold text-gray-700" for="rruleByMonthDay">
-								指定日期 (BYMONTHDAY)
+								{m.rr_bymonthday()}
 							</label>
 							<input
 								id="rruleByMonthDay"
 								type="text"
 								bind:value={rruleByMonthDay}
-								placeholder="例如: 1 或 1,15 或 -1 (最后一天)"
+								placeholder={m.rr_bymonthday_placeholder()}
 								class="w-full rounded-lg border-2 border-gray-200 px-4 py-2 focus:border-indigo-500 focus:outline-none"
 							/>
 						</div>
@@ -515,10 +533,10 @@
 				>
 					<div class="mb-2 flex items-center justify-between">
 						<h3 class="text-lg font-bold text-gray-800">
-							{mode === 'cron' ? 'Cron 表达式' : 'RRule 规则'}
+							{mode === 'cron' ? m.cron_expression() : m.rrule_expression()}
 						</h3>
 						<button
-							on:click={() => copyToClipboard(mode === 'cron' ? cronExpression : rruleExpression)}
+							onclick={() => copyToClipboard(mode === 'cron' ? cronExpression : rruleExpression)}
 							class="flex items-center gap-2 rounded-lg bg-white px-3 py-1 transition-colors hover:bg-gray-50"
 						>
 							{#if copied}
@@ -535,7 +553,7 @@
 										d="M5 13l4 4L19 7"
 									/>
 								</svg>
-								<span class="text-sm text-green-600">已复制</span>
+								<span class="text-sm text-green-600">{m.copied()}</span>
 							{:else}
 								<svg
 									class="h-4 w-4 text-gray-600"
@@ -550,7 +568,7 @@
 										d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
 									/>
 								</svg>
-								<span class="text-sm text-gray-600">复制</span>
+								<span class="text-sm text-gray-600">{m.copy()}</span>
 							{/if}
 						</button>
 					</div>
@@ -564,7 +582,7 @@
 				<div
 					class="rounded-xl border-2 border-green-200 bg-linear-to-r from-green-50 to-emerald-50 p-6"
 				>
-					<h3 class="mb-2 text-lg font-bold text-gray-800">可读描述</h3>
+					<h3 class="mb-2 text-lg font-bold text-gray-800">{m.readable_description()}</h3>
 					<p class="text-xl font-medium text-gray-700">
 						{mode === 'cron' ? cronDescription : rruleDescription}
 					</p>
@@ -573,18 +591,18 @@
 
 			<!-- Info Box -->
 			<div class="mt-8 rounded-xl border-2 border-amber-200 bg-amber-50 p-6">
-				<h4 class="mb-2 font-bold text-amber-900">💡 使用提示</h4>
+				<h4 class="mb-2 font-bold text-amber-900">{m.usage_tips()}</h4>
 				<ul class="space-y-1 text-sm text-amber-800">
 					{#if mode === 'cron'}
-						<li>• 使用 * 表示"每个"时间单位</li>
-						<li>• 使用 */n 表示"每隔 n 个"时间单位</li>
-						<li>• 使用 1,2,3 表示多个特定值</li>
-						<li>• 使用 1-5 表示范围</li>
+						<li>• {m.usage_tips_cron()}</li>
+						<li>• {m.usage_tips_cron_interval()}</li>
+						<li>• {m.usage_tips_cron_multiple()}</li>
+						<li>• {m.usage_tips_cron_range()}</li>
 					{:else}
-						<li>• FREQ 决定重复的基本频率</li>
-						<li>• INTERVAL 设置间隔倍数</li>
-						<li>• COUNT 和 UNTIL 不能同时使用</li>
-						<li>• BYDAY 在不同 FREQ 下有不同含义</li>
+						<li>• {m.usage_tips_rrule()}</li>
+						<li>• {m.usage_tips_rrule_interval()}</li>
+						<li>• {m.usage_tips_rrule_count()}</li>
+						<li>• {m.usage_tips_rrule_byday()}</li>
 					{/if}
 				</ul>
 			</div>
